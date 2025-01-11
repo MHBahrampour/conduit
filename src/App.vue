@@ -3,5 +3,5 @@
 <template>
   <header></header>
 
-  <main></main>
+  <main><router-view></router-view></main>
 </template>
