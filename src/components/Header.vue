@@ -1,16 +1,17 @@
 <script setup lang="ts">
+import { useAuth } from "@/composables/useAuth";
 import { useRoute } from "vue-router";
 
-const isLoggedIn = true;
 const route = useRoute();
-console.log(route.path);
+const { isLoggedIn } = useAuth();
 </script>
+
 <template>
   <header>
     <nav class="navbar navbar-light">
       <div class="container">
         <a class="navbar-brand" href="/">conduit</a>
-        <ul v-if="!isLoggedIn" class="nav navbar-nav pull-xs-right">
+        <ul v-if="isLoggedIn" class="nav navbar-nav pull-xs-right">
           <li class="nav-item">
             <!-- Add "active" class dynamically -->
             <router-link
