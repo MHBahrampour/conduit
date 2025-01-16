@@ -6,8 +6,10 @@ import { useMutation } from "@tanstack/vue-query";
 import { registerUser } from "@/services/auth";
 import { handleError } from "@/lib/handleError";
 import { useRouter } from "vue-router";
+import { useAuth } from "@/composables/useAuth";
 
 const router = useRouter();
+const { setToken } = useAuth();
 
 const schema = toTypedSchema(
   z.object({
@@ -40,7 +42,7 @@ const [password, passwordAttrs] = form.defineField("password");
 const registerMutation = useMutation({
   mutationFn: registerUser,
   onSuccess: (user) => {
-    localStorage.setItem("conduit-token", user.token);
+    setToken(user.token);
     alert("Registration successful!");
     router.push("/");
   },
