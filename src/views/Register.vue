@@ -39,8 +39,8 @@ const [password, passwordAttrs] = form.defineField("password");
 
 const registerMutation = useMutation({
   mutationFn: registerUser,
-  onSuccess: (data) => {
-    localStorage.setItem("conduit-token", data.user.token);
+  onSuccess: (user) => {
+    localStorage.setItem("conduit-token", user.token);
     alert("Registration successful!");
     router.push("/");
   },

@@ -26,13 +26,11 @@ export interface UpdateUserPayload {
 
 // Response Types
 export interface User {
-  user: {
-    email: string;
-    token: string;
-    username: string;
-    bio: string | null;
-    image: string | null;
-  };
+  email: string;
+  token: string;
+  username: string;
+  bio: string | null;
+  image: string | null;
 }
 
 export interface RegisterResponse {
