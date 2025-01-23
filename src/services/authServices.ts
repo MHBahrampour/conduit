@@ -20,7 +20,7 @@ export async function loginUser(payload: LoginPayload): Promise<User> {
   return response.data.user;
 }
 
-export async function getCurrentUser(): Promise<User> {
+export async function fetchCurrentUser(): Promise<User> {
   const response = await api.get<CurrentUserResponse>("/user");
   return response.data.user;
 }

@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import { useAuth } from "@/composables/useAuth";
+import { fetchCurrentUser } from "@/services/authServices";
+import { useQuery } from "@tanstack/vue-query";
 import { useRoute } from "vue-router";
 
 const route = useRoute();
 const { isLoggedIn } = useAuth();
+
+const { data: currentUser } = useQuery({
+  queryFn: () => fetchCurrentUser(),
+  queryKey: ["currentUser"],
+});
 </script>
 
 <template>
@@ -40,14 +47,18 @@ const { isLoggedIn } = useAuth();
               <i class="ion-gear-a"></i>&nbsp;Settings
             </router-link>
           </li>
-          <li class="nav-item">
+          <li class="nav-item" v-if="currentUser">
             <router-link
-              :to="`/profile/eric-simons`"
+              :to="`/profile/${currentUser.username}`"
               class="nav-link"
               :class="{ active: route.path.startsWith('/profile') }"
             >
-              <img src="" class="user-pic" />
-              Eric Simons
+              <img
+                :src="currentUser.image || ''"
+                class="user-pic"
+                alt="user pic"
+              />
+              {{ currentUser.username }}
             </router-link>
           </li>
         </ul>
