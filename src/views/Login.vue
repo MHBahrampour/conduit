@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { z } from "zod";
 import { handleError } from "@/lib/handleError";
-import { loginUser } from "@/services/auth";
+import { loginUser } from "@/services/authServices";
 import { useMutation } from "@tanstack/vue-query";
 import { toTypedSchema } from "@vee-validate/zod";
 import { ErrorMessage, useForm } from "vee-validate";

@@ -3,7 +3,7 @@ import { ErrorMessage, useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/vue-query";
-import { registerUser } from "@/services/auth";
+import { registerUser } from "@/services/authServices";
 import { handleError } from "@/lib/handleError";
 import { useRouter } from "vue-router";
 import { useAuth } from "@/composables/useAuth";

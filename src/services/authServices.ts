@@ -8,7 +8,7 @@ import {
   type UpdateUserPayload,
   type UpdateUserResponse,
   type User,
-} from "@/types/auth";
+} from "@/types/authTypes";
 
 export async function registerUser(payload: RegisterPayload): Promise<User> {
   const response = await api.post<RegisterResponse>("/users", payload);

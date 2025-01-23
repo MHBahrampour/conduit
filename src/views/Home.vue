@@ -1,4 +1,71 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { useAuth } from "@/composables/useAuth";
+import {
+  fetchGlobalArticles,
+  fetchYourArticles,
+} from "@/services/articleServices";
+import { fetchTags } from "@/services/tagServices";
+import type { Article } from "@/types/articleTypes";
+import { useQuery } from "@tanstack/vue-query";
+import { computed, ref } from "vue";
+
+type ActiveFeed = "global-feed" | "your-feed";
+
+interface Feed {
+  key: ActiveFeed;
+  name: string;
+}
+
+const ARTICLES_PER_PAGE = 5;
+
+const { isLoggedIn } = useAuth();
+
+const activeFeed = ref<ActiveFeed>("global-feed");
+const currentPage = ref(1);
+
+const feeds = computed(() => {
+  const feedList: Feed[] = [{ name: "Global Feed", key: "global-feed" }];
+  if (isLoggedIn.value) {
+    feedList.unshift({ name: "Your Feed", key: "your-feed" });
+    activeFeed.value = "your-feed";
+  }
+  return feedList;
+});
+
+const { data: globalFeed } = useQuery({
+  queryFn: () => fetchGlobalArticles(currentPage.value, ARTICLES_PER_PAGE),
+  queryKey: ["global-articles", currentPage],
+});
+
+const { data: yourFeed } = useQuery({
+  queryFn: () => fetchYourArticles(currentPage.value, ARTICLES_PER_PAGE),
+  queryKey: ["your-articles", currentPage],
+});
+
+const { data: tags } = useQuery({
+  queryFn: fetchTags,
+  queryKey: ["tags"],
+});
+
+const setActiveFeed = (feedKey: ActiveFeed) => {
+  activeFeed.value = feedKey;
+  // Trigger logic for loading the feed data
+};
+
+const activeFeedData = computed(() =>
+  activeFeed.value === "global-feed" ? globalFeed.value : yourFeed.value
+);
+
+const totalPages = computed(() =>
+  Math.ceil((activeFeedData.value?.articlesCount || 0) / ARTICLES_PER_PAGE)
+);
+
+const noArticleMessage = computed(() =>
+  activeFeed.value === "global-feed"
+    ? "Ops! No articles are here... yet."
+    : "You don't have any articles yet. Follow an author or favorite an article to get started."
+);
+</script>
 
 <template>
   <div class="home-page">
@@ -14,79 +81,80 @@
         <div class="col-md-9">
           <div class="feed-toggle">
             <ul class="nav nav-pills outline-active">
-              <li class="nav-item">
-                <a class="nav-link" href="">Your Feed</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link active" href="">Global Feed</a>
+              <li v-for="feed in feeds" :key="feed.key" class="nav-item">
+                <a
+                  class="nav-link"
+                  :class="{ active: activeFeed === feed.key }"
+                  href="#"
+                  @click.prevent="setActiveFeed(feed.key)"
+                >
+                  {{ feed.name }}
+                </a>
               </li>
             </ul>
           </div>
 
-          <div class="article-preview">
-            <div class="article-meta">
-              <a href="/profile/eric-simons"
-                ><img src="http://i.imgur.com/Qr71crq.jpg"
-              /></a>
-              <div class="info">
-                <a href="/profile/eric-simons" class="author">Eric Simons</a>
-                <span class="date">January 20th</span>
-              </div>
-              <button class="btn btn-outline-primary btn-sm pull-xs-right">
-                <i class="ion-heart"></i> 29
-              </button>
-            </div>
-            <a
-              href="/article/how-to-build-webapps-that-scale"
-              class="preview-link"
+          <div>
+            <div
+              v-if="activeFeedData?.articlesCount === 0"
+              class="article-preview"
             >
-              <h1>How to build webapps that scale</h1>
-              <p>This is the description for the post.</p>
-              <span>Read more...</span>
-              <ul class="tag-list">
-                <li class="tag-default tag-pill tag-outline">realworld</li>
-                <li class="tag-default tag-pill tag-outline">
-                  implementations
-                </li>
-              </ul>
-            </a>
-          </div>
-
-          <div class="article-preview">
-            <div class="article-meta">
-              <a href="/profile/albert-pai"
-                ><img src="http://i.imgur.com/N4VcUeJ.jpg"
-              /></a>
-              <div class="info">
-                <a href="/profile/albert-pai" class="author">Albert Pai</a>
-                <span class="date">January 20th</span>
-              </div>
-              <button class="btn btn-outline-primary btn-sm pull-xs-right">
-                <i class="ion-heart"></i> 32
-              </button>
+              <p>{{ noArticleMessage }}</p>
             </div>
-            <a href="/article/the-song-you" class="preview-link">
-              <h1>
-                The song you won't ever stop singing. No matter how hard you
-                try.
-              </h1>
-              <p>This is the description for the post.</p>
-              <span>Read more...</span>
-              <ul class="tag-list">
-                <li class="tag-default tag-pill tag-outline">realworld</li>
-                <li class="tag-default tag-pill tag-outline">
-                  implementations
-                </li>
-              </ul>
-            </a>
+            <div
+              v-else
+              v-for="article in activeFeedData?.articles"
+              :key="article.slug"
+              class="article-preview"
+            >
+              <div class="article-meta">
+                <a :href="`/profile/${article.author.username}`">
+                  <img
+                    :src="article.author.image"
+                    :alt="article.author.username"
+                  />
+                </a>
+                <div class="info">
+                  <a
+                    :href="`/profile/${article.author.username}`"
+                    class="author"
+                  >
+                    {{ article.author.username }}
+                  </a>
+                  <span class="date">{{
+                    new Date(article.createdAt).toDateString()
+                  }}</span>
+                </div>
+                <button class="btn btn-outline-primary btn-sm pull-xs-right">
+                  <i class="ion-heart"></i> {{ article.favoritesCount }}
+                </button>
+              </div>
+              <a :href="`/article/${article.slug}`" class="preview-link">
+                <h1>{{ article.title }}</h1>
+                <p>{{ article.description }}</p>
+                <span>Read more...</span>
+                <ul class="tag-list">
+                  <li
+                    v-for="tag in article.tagList"
+                    :key="tag"
+                    class="tag-default tag-pill tag-outline"
+                  >
+                    {{ tag }}
+                  </li>
+                </ul>
+              </a>
+            </div>
           </div>
 
           <ul class="pagination">
-            <li class="page-item active">
-              <a class="page-link" href="">1</a>
-            </li>
-            <li class="page-item">
-              <a class="page-link" href="">2</a>
+            <li
+              v-for="page in totalPages"
+              :key="page"
+              :class="['page-item', { active: currentPage === page }]"
+            >
+              <a class="page-link" href="#" @click.prevent="currentPage = page">
+                {{ page }}
+              </a>
             </li>
           </ul>
         </div>
@@ -96,14 +164,13 @@
             <p>Popular Tags</p>
 
             <div class="tag-list">
-              <a href="" class="tag-pill tag-default">programming</a>
-              <a href="" class="tag-pill tag-default">javascript</a>
-              <a href="" class="tag-pill tag-default">emberjs</a>
-              <a href="" class="tag-pill tag-default">angularjs</a>
-              <a href="" class="tag-pill tag-default">react</a>
-              <a href="" class="tag-pill tag-default">mean</a>
-              <a href="" class="tag-pill tag-default">node</a>
-              <a href="" class="tag-pill tag-default">rails</a>
+              <a
+                v-for="tag in tags"
+                :key="tag"
+                href=""
+                class="tag-pill tag-default"
+                >{{ tag }}</a
+              >
             </div>
           </div>
         </div>
