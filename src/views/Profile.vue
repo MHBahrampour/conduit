@@ -1,4 +1,48 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { useRoute } from "vue-router";
+import { useQuery } from "@tanstack/vue-query";
+import {
+  fetchProfile,
+  fetchArticlesByAuthor,
+  fetchFavoritedArticles,
+} from "@/services/profileServices";
+import { ref, computed } from "vue";
+
+const ARTICLES_PER_PAGE = 5;
+
+const route = useRoute();
+const username = route.params.username as string;
+
+const selectedTab = ref<"my-articles" | "favorited-articles">("my-articles");
+const currentPage = ref(1);
+
+const { data: profile } = useQuery({
+  queryKey: ["profile", username],
+  queryFn: () => fetchProfile(username),
+});
+
+const { data: myArticles } = useQuery({
+  queryKey: ["myArticles", currentPage],
+  queryFn: () =>
+    fetchArticlesByAuthor(username, currentPage.value, ARTICLES_PER_PAGE),
+});
+
+const { data: favoritedArticles } = useQuery({
+  queryKey: ["favoritedArticles", currentPage],
+  queryFn: () =>
+    fetchFavoritedArticles(username, currentPage.value, ARTICLES_PER_PAGE),
+});
+
+const selectedTabData = computed(() =>
+  selectedTab.value === "my-articles"
+    ? myArticles.value
+    : favoritedArticles.value
+);
+
+const totalPages = computed(() =>
+  Math.ceil((selectedTabData?.value?.articlesCount || 0) / ARTICLES_PER_PAGE)
+);
+</script>
 
 <template>
   <div class="profile-page">
@@ -6,19 +50,28 @@
       <div class="container">
         <div class="row">
           <div class="col-xs-12 col-md-10 offset-md-1">
-            <img src="http://i.imgur.com/Qr71crq.jpg" class="user-img" />
-            <h4>Eric Simons</h4>
-            <p>
-              Cofounder @GoThinkster, lived in Aol's HQ for a few months, kinda
-              looks like Peeta from the Hunger Games
-            </p>
-            <button class="btn btn-sm btn-outline-secondary action-btn">
-              <i class="ion-plus-round"></i>
-              &nbsp; Follow Eric Simons
+            <img
+              :src="profile?.image || 'https://via.placeholder.com/50'"
+              class="user-img"
+            />
+            <h4>{{ profile?.username }}</h4>
+            <p>{{ profile?.bio }}</p>
+            <button
+              v-if="!profile?.following"
+              class="btn btn-sm btn-outline-secondary action-btn"
+            >
+              <i class="ion-plus-round"></i>&nbsp; Follow
+              {{ profile?.username }}
             </button>
-            <button class="btn btn-sm btn-outline-secondary action-btn">
-              <i class="ion-gear-a"></i>
-              &nbsp; Edit Profile Settings
+            <button v-else class="btn btn-sm btn-outline-secondary action-btn">
+              <i class="ion-minus-round"></i>&nbsp; Unfollow
+              {{ profile?.username }}
+            </button>
+            <button
+              v-if="profile?.username === username"
+              class="btn btn-sm btn-outline-secondary action-btn"
+            >
+              <i class="ion-gear-a"></i>&nbsp; Edit Profile Settings
             </button>
           </div>
         </div>
@@ -31,76 +84,82 @@
           <div class="articles-toggle">
             <ul class="nav nav-pills outline-active">
               <li class="nav-item">
-                <a class="nav-link active" href="">My Articles</a>
+                <a
+                  class="nav-link"
+                  :class="{ active: selectedTab === 'my-articles' }"
+                  @click="selectedTab = 'my-articles'"
+                >
+                  My Articles
+                </a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="">Favorited Articles</a>
+                <a
+                  class="nav-link"
+                  :class="{ active: selectedTab === 'favorited-articles' }"
+                  @click="selectedTab = 'favorited-articles'"
+                >
+                  Favorited Articles
+                </a>
               </li>
             </ul>
           </div>
 
-          <div class="article-preview">
+          <div
+            v-for="article in selectedTabData?.articles"
+            :key="article.slug"
+            class="article-preview"
+          >
             <div class="article-meta">
-              <a href="/profile/eric-simons"
-                ><img src="http://i.imgur.com/Qr71crq.jpg"
-              /></a>
+              <a :href="`/profile/${article.author.username}`">
+                <img
+                  :src="
+                    article.author.image || 'https://via.placeholder.com/50'
+                  "
+                />
+              </a>
               <div class="info">
-                <a href="/profile/eric-simons" class="author">Eric Simons</a>
-                <span class="date">January 20th</span>
+                <a :href="`/profile/${article.author.username}`" class="author">
+                  {{ article.author.username }}
+                </a>
+                <span class="date">{{
+                  new Date(article.createdAt).toDateString()
+                }}</span>
               </div>
               <button class="btn btn-outline-primary btn-sm pull-xs-right">
-                <i class="ion-heart"></i> 29
+                <i class="ion-heart"></i> {{ article.favoritesCount }}
               </button>
             </div>
-            <a
-              href="/article/how-to-buil-webapps-that-scale"
-              class="preview-link"
-            >
-              <h1>How to build webapps that scale</h1>
-              <p>This is the description for the post.</p>
+            <a :href="`/article/${article.slug}`" class="preview-link">
+              <h1>{{ article.title }}</h1>
+              <p>{{ article.description }}</p>
               <span>Read more...</span>
               <ul class="tag-list">
-                <li class="tag-default tag-pill tag-outline">realworld</li>
-                <li class="tag-default tag-pill tag-outline">
-                  implementations
+                <li
+                  v-for="tag in article.tagList"
+                  :key="tag"
+                  class="tag-default tag-pill tag-outline"
+                >
+                  {{ tag }}
                 </li>
               </ul>
             </a>
           </div>
 
-          <div class="article-preview">
-            <div class="article-meta">
-              <a href="/profile/albert-pai"
-                ><img src="http://i.imgur.com/N4VcUeJ.jpg"
-              /></a>
-              <div class="info">
-                <a href="/profile/albert-pai" class="author">Albert Pai</a>
-                <span class="date">January 20th</span>
-              </div>
-              <button class="btn btn-outline-primary btn-sm pull-xs-right">
-                <i class="ion-heart"></i> 32
-              </button>
-            </div>
-            <a href="/article/the-song-you" class="preview-link">
-              <h1>
-                The song you won't ever stop singing. No matter how hard you
-                try.
-              </h1>
-              <p>This is the description for the post.</p>
-              <span>Read more...</span>
-              <ul class="tag-list">
-                <li class="tag-default tag-pill tag-outline">Music</li>
-                <li class="tag-default tag-pill tag-outline">Song</li>
-              </ul>
-            </a>
+          <div
+            v-if="selectedTabData?.articlesCount === 0"
+            class="article-preview"
+          >
+            <p class="text-center">No articles are here... yet.</p>
           </div>
 
-          <ul class="pagination">
-            <li class="page-item active">
-              <a class="page-link" href="">1</a>
-            </li>
-            <li class="page-item">
-              <a class="page-link" href="">2</a>
+          <ul v-if="totalPages > 1" class="pagination">
+            <li
+              v-for="page in totalPages"
+              :key="page"
+              class="page-item"
+              :class="{ active: page === currentPage }"
+            >
+              <a class="page-link" @click="currentPage = page">{{ page }}</a>
             </li>
           </ul>
         </div>
