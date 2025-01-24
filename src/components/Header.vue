@@ -2,6 +2,7 @@
 import { useAuth } from "@/composables/useAuth";
 import { fetchCurrentUser } from "@/services/authServices";
 import { useQuery } from "@tanstack/vue-query";
+import { computed } from "vue";
 import { useRoute } from "vue-router";
 
 const route = useRoute();
@@ -10,7 +11,7 @@ const { isLoggedIn } = useAuth();
 const { data: currentUser } = useQuery({
   queryFn: () => fetchCurrentUser(),
   queryKey: ["currentUser"],
-  enabled: isLoggedIn.value,
+  enabled: computed(() => isLoggedIn.value),
 });
 </script>
 
