@@ -5,7 +5,6 @@ import {
   fetchYourArticles,
 } from "@/services/articleServices";
 import { fetchTags } from "@/services/tagServices";
-import type { Article } from "@/types/articleTypes";
 import { useQuery } from "@tanstack/vue-query";
 import { computed, ref } from "vue";
 
@@ -40,6 +39,7 @@ const { data: globalFeed } = useQuery({
 const { data: yourFeed } = useQuery({
   queryFn: () => fetchYourArticles(currentPage.value, ARTICLES_PER_PAGE),
   queryKey: ["your-articles", currentPage],
+  enabled: isLoggedIn.value,
 });
 
 const { data: tags } = useQuery({

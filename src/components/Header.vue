@@ -10,6 +10,7 @@ const { isLoggedIn } = useAuth();
 const { data: currentUser } = useQuery({
   queryFn: () => fetchCurrentUser(),
   queryKey: ["currentUser"],
+  enabled: isLoggedIn.value,
 });
 </script>
 
