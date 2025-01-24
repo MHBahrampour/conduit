@@ -79,4 +79,20 @@ const router = createRouter({
   routes,
 });
 
+const publicRoutes = ["Login", "Register", "Home"];
+
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = !!localStorage.getItem("conduit-token");
+
+  if (
+    !isAuthenticated &&
+    to.name !== "Login" &&
+    !publicRoutes.includes(to.name as string)
+  ) {
+    next({ name: "Login" });
+  } else {
+    next();
+  }
+});
+
 export default router;
