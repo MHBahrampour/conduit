@@ -42,6 +42,13 @@ const schema = toTypedSchema(
 
 const form = useForm({
   validationSchema: schema,
+  initialValues: {
+    username: "",
+    email: "",
+    password: "",
+    bio: "",
+    image: "",
+  },
 });
 
 const [username, usernameAttrs] = form.defineField("username");

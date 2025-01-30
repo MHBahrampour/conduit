@@ -16,7 +16,20 @@ export interface Article {
   };
 }
 
+export interface SingleArticleResponse {
+  article: Article;
+}
+
 export interface ArticlesResponse {
   articles: Article[];
   articlesCount: number;
 }
+
+export interface CreateArticlePayload {
+  title: string;
+  description: string;
+  body: string;
+  tagList: string[];
+}
+
+export type UpdateArticlePayload = Partial<CreateArticlePayload>;

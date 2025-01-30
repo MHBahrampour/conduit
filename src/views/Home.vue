@@ -49,7 +49,6 @@ const { data: tags } = useQuery({
 
 const setActiveFeed = (feedKey: ActiveFeed) => {
   activeFeed.value = feedKey;
-  // Trigger logic for loading the feed data
 };
 
 const activeFeedData = computed(() =>
@@ -108,19 +107,22 @@ const noArticleMessage = computed(() =>
               class="article-preview"
             >
               <div class="article-meta">
-                <a :href="`/profile/${article.author.username}`">
+                <router-link
+                  :to="`/profile/${article.author.username}`"
+                  class="nav-link"
+                >
                   <img
                     :src="article.author.image"
                     :alt="article.author.username"
                   />
-                </a>
+                </router-link>
                 <div class="info">
-                  <a
-                    :href="`/profile/${article.author.username}`"
-                    class="author"
+                  <router-link
+                    :to="`/profile/${article.author.username}`"
+                    class="nav-link"
                   >
                     {{ article.author.username }}
-                  </a>
+                  </router-link>
                   <span class="date">{{
                     new Date(article.createdAt).toDateString()
                   }}</span>
@@ -129,7 +131,10 @@ const noArticleMessage = computed(() =>
                   <i class="ion-heart"></i> {{ article.favoritesCount }}
                 </button>
               </div>
-              <a :href="`/article/${article.slug}`" class="preview-link">
+              <router-link
+                :to="`/article/${article.slug}`"
+                class="preview-link"
+              >
                 <h1>{{ article.title }}</h1>
                 <p>{{ article.description }}</p>
                 <span>Read more...</span>
@@ -142,7 +147,7 @@ const noArticleMessage = computed(() =>
                     {{ tag }}
                   </li>
                 </ul>
-              </a>
+              </router-link>
             </div>
           </div>
 

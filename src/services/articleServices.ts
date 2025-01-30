@@ -1,4 +1,10 @@
-import type { ArticlesResponse } from "@/types/articleTypes";
+import type {
+  Article,
+  ArticlesResponse,
+  CreateArticlePayload,
+  SingleArticleResponse,
+  UpdateArticlePayload,
+} from "@/types/articleTypes";
 import api from "./api";
 
 export async function fetchGlobalArticles(
@@ -21,4 +27,31 @@ export async function fetchYourArticles(
     `/articles/feed?limit=${limit}&offset=${offset}`
   );
   return response.data;
+}
+
+export async function fetchArticle(slug: string): Promise<Article> {
+  const response = await api.get<SingleArticleResponse>(`/articles/${slug}`);
+  return response.data.article;
+}
+
+export async function createArticle(
+  payload: CreateArticlePayload
+): Promise<Article> {
+  const response = await api.post<SingleArticleResponse>("/articles", {
+    article: payload,
+  });
+  return response.data.article;
+}
+
+export async function updateArticle({
+  slug,
+  payload,
+}: {
+  slug: string;
+  payload: UpdateArticlePayload;
+}): Promise<Article> {
+  const response = await api.put<SingleArticleResponse>(`/articles/${slug}`, {
+    article: payload,
+  });
+  return response.data.article;
 }

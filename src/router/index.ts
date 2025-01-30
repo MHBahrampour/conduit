@@ -40,14 +40,9 @@ const routes: RouteRecordRaw[] = [
 
   // Editor Page
   {
-    path: "/editor",
+    path: "/editor/:slug?",
     name: "Editor",
     component: Editor,
-  },
-  {
-    path: "/editor/:slug",
-    name: "EditArticle",
-    component: EditArticle,
     props: true,
   },
 
