@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { useAuth } from "@/composables/useAuth";
+import { handleError } from "@/lib/handleError";
 import {
   fetchGlobalArticles,
   fetchYourArticles,
+  favoriteArticle,
+  unfavoriteArticle,
+  fetchUserFavoritedArticles,
 } from "@/services/articleServices";
+import { fetchCurrentUser } from "@/services/authServices";
 import { fetchTags } from "@/services/tagServices";
-import { useQuery } from "@tanstack/vue-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import { computed, ref } from "vue";
 
 type ActiveFeed = "global-feed" | "your-feed";
@@ -18,6 +23,7 @@ interface Feed {
 const ARTICLES_PER_PAGE = 5;
 
 const { isLoggedIn } = useAuth();
+const queryClient = useQueryClient();
 
 const activeFeed = ref<ActiveFeed>("global-feed");
 const currentPage = ref(1);
@@ -29,6 +35,12 @@ const feeds = computed(() => {
     activeFeed.value = "your-feed";
   }
   return feedList;
+});
+
+const { data: currentUser } = useQuery({
+  queryFn: () => fetchCurrentUser(),
+  queryKey: ["currentUser"],
+  enabled: computed(() => isLoggedIn.value),
 });
 
 const { data: globalFeed } = useQuery({
@@ -47,8 +59,55 @@ const { data: tags } = useQuery({
   queryKey: ["tags"],
 });
 
+const { data: favoritedArticles } = useQuery({
+  queryFn: () => fetchUserFavoritedArticles(currentUser.value?.username!),
+  queryKey: ["favorited-articles", currentPage],
+  enabled: !!currentUser.value?.username,
+});
+
+const favoriteArticleMutation = useMutation({
+  mutationFn: favoriteArticle,
+  onSuccess: () => {
+    queryClient.invalidateQueries({
+      queryKey: ["global-articles", currentPage],
+    });
+    queryClient.invalidateQueries({ queryKey: ["favorited-articles"] });
+  },
+  onError: (error) => {
+    handleError(error);
+  },
+});
+
+const unfavoriteArticleMutation = useMutation({
+  mutationFn: unfavoriteArticle,
+  onSuccess: () => {
+    queryClient.invalidateQueries({
+      queryKey: ["global-articles", currentPage],
+    });
+    queryClient.invalidateQueries({ queryKey: ["favorited-articles"] });
+  },
+  onError: (error) => {
+    handleError(error);
+  },
+});
+
 const setActiveFeed = (feedKey: ActiveFeed) => {
   activeFeed.value = feedKey;
+};
+
+const toggleFavorite = (slug: string) => {
+  if (!isLoggedIn.value) {
+    alert("Please login to favorite/unfavorite an article");
+    return;
+  }
+
+  const isFavorited = favoritedArticles.value?.articles.some(
+    (article) => article.slug === slug
+  );
+
+  isFavorited
+    ? unfavoriteArticleMutation.mutate(slug)
+    : favoriteArticleMutation.mutate(slug);
 };
 
 const activeFeedData = computed(() =>
@@ -127,7 +186,10 @@ const noArticleMessage = computed(() =>
                     new Date(article.createdAt).toDateString()
                   }}</span>
                 </div>
-                <button class="btn btn-outline-primary btn-sm pull-xs-right">
+                <button
+                  @click="toggleFavorite(article.slug)"
+                  class="btn btn-outline-primary btn-sm pull-xs-right"
+                >
                   <i class="ion-heart"></i> {{ article.favoritesCount }}
                 </button>
               </div>

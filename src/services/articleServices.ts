@@ -55,3 +55,26 @@ export async function updateArticle({
   });
   return response.data.article;
 }
+
+export async function favoriteArticle(slug: string): Promise<Article> {
+  const response = await api.post<SingleArticleResponse>(
+    `/articles/${slug}/favorite`
+  );
+  return response.data.article;
+}
+
+export async function unfavoriteArticle(slug: string): Promise<Article> {
+  const response = await api.delete<SingleArticleResponse>(
+    `/articles/${slug}/favorite`
+  );
+  return response.data.article;
+}
+
+export async function fetchUserFavoritedArticles(
+  username: string
+): Promise<ArticlesResponse> {
+  const response = await api.get<ArticlesResponse>(
+    `/articles?favorited=${username}`
+  );
+  return response.data;
+}
