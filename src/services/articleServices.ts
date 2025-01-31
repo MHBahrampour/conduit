@@ -56,6 +56,10 @@ export async function updateArticle({
   return response.data.article;
 }
 
+export async function deleteArticle(slug: string): Promise<void> {
+  await api.delete(`/articles/${slug}`);
+}
+
 export async function favoriteArticle(slug: string): Promise<Article> {
   const response = await api.post<SingleArticleResponse>(
     `/articles/${slug}/favorite`

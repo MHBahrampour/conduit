@@ -1,17 +1,22 @@
 <script setup lang="ts">
 import { useRoute } from "vue-router";
-import { useQuery } from "@tanstack/vue-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import {
   fetchProfile,
   fetchArticlesByAuthor,
   fetchFavoritedArticles,
+  followUser,
+  unfollowUser,
 } from "@/services/profileServices";
 import { ref, computed } from "vue";
 import ArticlePreview from "@/components/ArticlePreview.vue";
+import { handleError } from "@/lib/handleError";
 
 const ARTICLES_PER_PAGE = 5;
 
 const route = useRoute();
+const queryClient = useQueryClient();
+
 const username = route.params.username as string;
 
 const selectedTab = ref<"my-articles" | "favorited-articles">("my-articles");
@@ -33,6 +38,36 @@ const { data: favoritedArticles } = useQuery({
   queryFn: () =>
     fetchFavoritedArticles(username, currentPage.value, ARTICLES_PER_PAGE),
 });
+
+const followUserMutation = useMutation({
+  mutationFn: followUser,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ["profile", username] });
+    alert("Follow successful!");
+  },
+  onError: (error) => {
+    handleError(error);
+  },
+});
+
+const unfollowUserMutation = useMutation({
+  mutationFn: unfollowUser,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ["profile", username] });
+    alert("Unfollow successful!");
+  },
+  onError: (error) => {
+    handleError(error);
+  },
+});
+
+const toggleFollow = () => {
+  if (profile.value?.following) {
+    unfollowUserMutation.mutate(username);
+  } else {
+    followUserMutation.mutate(username);
+  }
+};
 
 const selectedTabData = computed(() =>
   selectedTab.value === "my-articles"
@@ -58,14 +93,15 @@ const totalPages = computed(() =>
             <h4>{{ profile?.username }}</h4>
             <p>{{ profile?.bio }}</p>
             <button
-              v-if="!profile?.following"
               class="btn btn-sm btn-outline-secondary action-btn"
+              @click="toggleFollow"
             >
-              <i class="ion-plus-round"></i>&nbsp; Follow
-              {{ profile?.username }}
-            </button>
-            <button v-else class="btn btn-sm btn-outline-secondary action-btn">
-              <i class="ion-minus-round"></i>&nbsp; Unfollow
+              <i
+                :class="
+                  profile?.following ? 'ion-minus-round' : 'ion-plus-round'
+                "
+              ></i>
+              &nbsp; {{ profile?.following ? "Unfollow" : "Follow" }}
               {{ profile?.username }}
             </button>
             <button

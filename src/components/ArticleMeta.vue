@@ -1,7 +1,12 @@
 <script setup lang="ts">
-import { defineProps } from "vue";
+import { handleError } from "@/lib/handleError";
+import { deleteArticle } from "@/services/articleServices";
+import { fetchCurrentUser } from "@/services/authServices";
+import { useMutation, useQuery } from "@tanstack/vue-query";
+import { computed, defineProps } from "vue";
+import { useRouter } from "vue-router";
 
-defineProps({
+const props = defineProps({
   article: {
     type: Object,
     required: true,
@@ -10,6 +15,28 @@ defineProps({
     type: Boolean,
     required: true,
   },
+});
+
+const router = useRouter();
+
+const { data: currentUser } = useQuery({
+  queryFn: () => fetchCurrentUser(),
+  queryKey: ["currentUser"],
+});
+
+const deleteArticleMutation = useMutation({
+  mutationFn: deleteArticle,
+  onSuccess: () => {
+    router.push("/");
+    alert("Article deleted successfully!");
+  },
+  onError: (error) => {
+    handleError(error);
+  },
+});
+
+const isCurrentUserTheAuthor = computed(() => {
+  return currentUser.value?.username === props.article?.author?.username;
 });
 </script>
 
@@ -22,10 +49,15 @@ defineProps({
       <router-link :to="`/profile/${article?.author?.username}`" class="author">
         {{ article?.author?.username }}
       </router-link>
-      <span class="date">{{ article?.createdAt }}</span>
+      <span class="date">{{
+        new Date(article?.createdAt).toLocaleString()
+      }}</span>
     </div>
 
-    <button class="btn btn-sm btn-outline-secondary">
+    <button
+      v-if="!isCurrentUserTheAuthor"
+      class="btn btn-sm btn-outline-secondary"
+    >
       <i class="ion-plus-round"></i>
       {{ article?.author?.following ? "Unfollow" : "Follow" }}
       {{ article?.author?.username }}
@@ -40,10 +72,16 @@ defineProps({
     </button>
 
     <template v-if="isCurrentUserTheAuthor">
-      <button class="btn btn-sm btn-outline-secondary">
+      <button
+        @click="router.push(`/editor/${article?.slug}`)"
+        class="btn btn-sm btn-outline-secondary"
+      >
         <i class="ion-edit"></i> Edit Article
       </button>
-      <button class="btn btn-sm btn-outline-danger">
+      <button
+        @click="deleteArticleMutation.mutate(article?.slug)"
+        class="btn btn-sm btn-outline-danger"
+      >
         <i class="ion-trash-a"></i> Delete Article
       </button>
     </template>
