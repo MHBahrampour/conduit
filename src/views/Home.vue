@@ -1,16 +1,12 @@
 <script setup lang="ts">
+import ArticlePreview from "@/components/ArticlePreview.vue";
 import { useAuth } from "@/composables/useAuth";
-import { handleError } from "@/lib/handleError";
 import {
   fetchGlobalArticles,
   fetchYourArticles,
-  favoriteArticle,
-  unfavoriteArticle,
-  fetchUserFavoritedArticles,
 } from "@/services/articleServices";
-import { fetchCurrentUser } from "@/services/authServices";
 import { fetchTags } from "@/services/tagServices";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
+import { useQuery } from "@tanstack/vue-query";
 import { computed, ref } from "vue";
 
 type ActiveFeed = "global-feed" | "your-feed";
@@ -23,7 +19,6 @@ interface Feed {
 const ARTICLES_PER_PAGE = 5;
 
 const { isLoggedIn } = useAuth();
-const queryClient = useQueryClient();
 
 const activeFeed = ref<ActiveFeed>("global-feed");
 const currentPage = ref(1);
@@ -35,12 +30,6 @@ const feeds = computed(() => {
     activeFeed.value = "your-feed";
   }
   return feedList;
-});
-
-const { data: currentUser } = useQuery({
-  queryFn: () => fetchCurrentUser(),
-  queryKey: ["currentUser"],
-  enabled: computed(() => isLoggedIn.value),
 });
 
 const { data: globalFeed } = useQuery({
@@ -59,55 +48,8 @@ const { data: tags } = useQuery({
   queryKey: ["tags"],
 });
 
-const { data: favoritedArticles } = useQuery({
-  queryFn: () => fetchUserFavoritedArticles(currentUser.value?.username!),
-  queryKey: ["favorited-articles", currentPage],
-  enabled: !!currentUser.value?.username,
-});
-
-const favoriteArticleMutation = useMutation({
-  mutationFn: favoriteArticle,
-  onSuccess: () => {
-    queryClient.invalidateQueries({
-      queryKey: ["global-articles", currentPage],
-    });
-    queryClient.invalidateQueries({ queryKey: ["favorited-articles"] });
-  },
-  onError: (error) => {
-    handleError(error);
-  },
-});
-
-const unfavoriteArticleMutation = useMutation({
-  mutationFn: unfavoriteArticle,
-  onSuccess: () => {
-    queryClient.invalidateQueries({
-      queryKey: ["global-articles", currentPage],
-    });
-    queryClient.invalidateQueries({ queryKey: ["favorited-articles"] });
-  },
-  onError: (error) => {
-    handleError(error);
-  },
-});
-
 const setActiveFeed = (feedKey: ActiveFeed) => {
   activeFeed.value = feedKey;
-};
-
-const toggleFavorite = (slug: string) => {
-  if (!isLoggedIn.value) {
-    alert("Please login to favorite/unfavorite an article");
-    return;
-  }
-
-  const isFavorited = favoritedArticles.value?.articles.some(
-    (article) => article.slug === slug
-  );
-
-  isFavorited
-    ? unfavoriteArticleMutation.mutate(slug)
-    : favoriteArticleMutation.mutate(slug);
 };
 
 const activeFeedData = computed(() =>
@@ -159,58 +101,12 @@ const noArticleMessage = computed(() =>
             >
               <p>{{ noArticleMessage }}</p>
             </div>
-            <div
-              v-else
+            <ArticlePreview
               v-for="article in activeFeedData?.articles"
               :key="article.slug"
-              class="article-preview"
-            >
-              <div class="article-meta">
-                <router-link
-                  :to="`/profile/${article.author.username}`"
-                  class="nav-link"
-                >
-                  <img
-                    :src="article.author.image"
-                    :alt="article.author.username"
-                  />
-                </router-link>
-                <div class="info">
-                  <router-link
-                    :to="`/profile/${article.author.username}`"
-                    class="nav-link"
-                  >
-                    {{ article.author.username }}
-                  </router-link>
-                  <span class="date">{{
-                    new Date(article.createdAt).toDateString()
-                  }}</span>
-                </div>
-                <button
-                  @click="toggleFavorite(article.slug)"
-                  class="btn btn-outline-primary btn-sm pull-xs-right"
-                >
-                  <i class="ion-heart"></i> {{ article.favoritesCount }}
-                </button>
-              </div>
-              <router-link
-                :to="`/article/${article.slug}`"
-                class="preview-link"
-              >
-                <h1>{{ article.title }}</h1>
-                <p>{{ article.description }}</p>
-                <span>Read more...</span>
-                <ul class="tag-list">
-                  <li
-                    v-for="tag in article.tagList"
-                    :key="tag"
-                    class="tag-default tag-pill tag-outline"
-                  >
-                    {{ tag }}
-                  </li>
-                </ul>
-              </router-link>
-            </div>
+              :article="article"
+              :currentPage="currentPage"
+            />
           </div>
 
           <ul class="pagination">

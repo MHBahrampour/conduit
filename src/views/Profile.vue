@@ -7,6 +7,7 @@ import {
   fetchFavoritedArticles,
 } from "@/services/profileServices";
 import { ref, computed } from "vue";
+import ArticlePreview from "@/components/ArticlePreview.vue";
 
 const ARTICLES_PER_PAGE = 5;
 
@@ -22,13 +23,13 @@ const { data: profile } = useQuery({
 });
 
 const { data: myArticles } = useQuery({
-  queryKey: ["myArticles", currentPage],
+  queryKey: ["my-articles", currentPage],
   queryFn: () =>
     fetchArticlesByAuthor(username, currentPage.value, ARTICLES_PER_PAGE),
 });
 
 const { data: favoritedArticles } = useQuery({
-  queryKey: ["favoritedArticles", currentPage],
+  queryKey: ["favorited-articles", currentPage],
   queryFn: () =>
     fetchFavoritedArticles(username, currentPage.value, ARTICLES_PER_PAGE),
 });
@@ -70,6 +71,7 @@ const totalPages = computed(() =>
             <button
               v-if="profile?.username === username"
               class="btn btn-sm btn-outline-secondary action-btn"
+              @click="$router.push('/settings')"
             >
               <i class="ion-gear-a"></i>&nbsp; Edit Profile Settings
             </button>
@@ -104,46 +106,12 @@ const totalPages = computed(() =>
             </ul>
           </div>
 
-          <div
+          <ArticlePreview
             v-for="article in selectedTabData?.articles"
             :key="article.slug"
-            class="article-preview"
-          >
-            <div class="article-meta">
-              <a :href="`/profile/${article.author.username}`">
-                <img
-                  :src="
-                    article.author.image || 'https://via.placeholder.com/50'
-                  "
-                />
-              </a>
-              <div class="info">
-                <a :href="`/profile/${article.author.username}`" class="author">
-                  {{ article.author.username }}
-                </a>
-                <span class="date">{{
-                  new Date(article.createdAt).toDateString()
-                }}</span>
-              </div>
-              <button class="btn btn-outline-primary btn-sm pull-xs-right">
-                <i class="ion-heart"></i> {{ article.favoritesCount }}
-              </button>
-            </div>
-            <a :href="`/article/${article.slug}`" class="preview-link">
-              <h1>{{ article.title }}</h1>
-              <p>{{ article.description }}</p>
-              <span>Read more...</span>
-              <ul class="tag-list">
-                <li
-                  v-for="tag in article.tagList"
-                  :key="tag"
-                  class="tag-default tag-pill tag-outline"
-                >
-                  {{ tag }}
-                </li>
-              </ul>
-            </a>
-          </div>
+            :article="article"
+            :currentPage="currentPage"
+          />
 
           <div
             v-if="selectedTabData?.articlesCount === 0"
